@@ -1,0 +1,239 @@
+{
+  "meta": {
+    "gerado_em": "2026-09-05",
+    "data_inicio": "2026-05-31",
+    "data_fim": "2026-08-23",
+    "periodo": "31 mai – 23 ago 2026",
+    "atualizado": "ago/2026 · dados de referência",
+    "fonte": "camada Gold · Lakeview",
+    "lakeview_url": ""
+  },
+  "kpis": {
+    "usuarios_gerais": 46,
+    "usuarios_comuns_ativos": 10,
+    "cooperativas_ativas": 3,
+    "condominios": 5,
+    "condominios_ativos": 4,
+    "condominios_inativos": 1,
+    "postagens_total": 21,
+    "postagens_aprovadas": 0,
+    "postagens_reprovadas": 0,
+    "postagens_em_analise": 21,
+    "quiz_respondidos": 33,
+    "quiz_aprovados": 14,
+    "quiz_reprovados": 19,
+    "nota_media": 68.18,
+    "usuarios_que_postaram": 10
+  },
+  "evolucao_usuarios": {
+    "rotulos": [
+      "Abr 26",
+      "Mai 10",
+      "Mai 24",
+      "Jun 07",
+      "Jun 21",
+      "Jul 05",
+      "Jul 19",
+      "Ago 02",
+      "Ago 16",
+      "Ago 30"
+    ],
+    "series": [
+      {
+        "nome": "Morador Residencial",
+        "valores": [
+          16,
+          16,
+          17,
+          17,
+          18,
+          18,
+          19,
+          19,
+          20,
+          20
+        ]
+      },
+      {
+        "nome": "Usuário Comum",
+        "valores": [
+          9,
+          9,
+          9,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ]
+      },
+      {
+        "nome": "Síndico",
+        "valores": [
+          5,
+          5,
+          5,
+          5,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      {
+        "nome": "Usuário Comercial",
+        "valores": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      {
+        "nome": "Cooperativa",
+        "valores": [
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ]
+      }
+    ]
+  },
+  "condominios_ranking": [
+    {
+      "nome": "Cond. Travessa da Paz",
+      "valor": 6
+    },
+    {
+      "nome": "Cond. Alameda Santos",
+      "valor": 5
+    },
+    {
+      "nome": "Cond. Avenida Faria Lima",
+      "valor": 5
+    },
+    {
+      "nome": "Ed. Comercial Rua Augusta",
+      "valor": 3
+    },
+    {
+      "nome": "Ed. Comercial Av. Ibirapuera",
+      "valor": 2
+    }
+  ],
+  "usuarios_ranking": [
+    {
+      "nome": "usuário 3499",
+      "valor": 3
+    },
+    {
+      "nome": "usuário 3489",
+      "valor": 2
+    },
+    {
+      "nome": "usuário 3494",
+      "valor": 2
+    },
+    {
+      "nome": "usuário 3483",
+      "valor": 2
+    },
+    {
+      "nome": "usuário 3468",
+      "valor": 2
+    }
+  ],
+  "condominios_por_uf": {
+    "SP": 2,
+    "BA": 1,
+    "AM": 1,
+    "PE": 1
+  },
+  "postagens_por_dia": {
+    "rotulos": [
+      "7 jun",
+      "23 ago"
+    ],
+    "valores": [
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      2,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      2,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1
+    ]
+  },
+  "quiz_por_dia": {
+    "rotulos": [
+      "31 mai",
+      "14 jun",
+      "28 jun",
+      "12 jul",
+      "26 jul",
+      "9 ago",
+      "23 ago"
+    ],
+    "valores": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      3
+    ]
+  },
+  "respostas_por_curso": [
+    {
+      "curso": "Compostagem Residencial e de Apartamento (Coletiva)",
+      "total": 60,
+      "corretas": 30
+    },
+    {
+      "curso": "Reciclagem de Materiais",
+      "total": 50,
+      "corretas": 20
+    }
+  ]
+}
