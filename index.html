@@ -181,7 +181,7 @@ body.view-viz .viz-pane{display:block}
 .vf-b{display:block;height:100%;border-radius:7px}
 .vf-row b{font-family:var(--mono);color:var(--deep);min-width:2.2em;text-align:right}
 .vmarks{display:flex;flex-direction:column;align-items:center;gap:12px;padding:6px 0}
-.vmarks .row{display:flex;gap:8px}
+.vmarks .row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:100%}
 .vmarks .mk{width:30px;height:30px;border-radius:8px;background:var(--deep)}
 .vmarks .mk.off{background:var(--wine)}
 .vmarks p{font-size:.95rem;color:var(--ink-2)}
@@ -2045,7 +2045,7 @@ body.view-viz .viz-pane{display:block}
       var box = h('div', 'vmarks');
       var rowEl = h('div', 'row');
       for (var i = 0; i < Math.min(total, 24); i++){
-        var m = h('span', 'mk' + (i < ok ? '' : ' off'));
+        var m = h('span', 'mk' + (i < (total > 24 ? Math.round(ok / total * 24) : ok) ? '' : ' off'));
         m.setAttribute('aria-hidden', 'true');
         rowEl.appendChild(m);
       }
