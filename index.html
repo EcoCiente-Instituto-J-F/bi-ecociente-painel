@@ -572,7 +572,7 @@ body.view-viz .viz-pane{display:block}
   .chart-card svg{break-inside:avoid}
 }
 </style>
-<style>.eco-h h2{font-size:1.25rem;margin:22px 0 2px;color:var(--deep)}.eco-h p{margin:0 0 10px;color:var(--muted);font-size:.8rem}.eco-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.eco-f label{font-size:.8rem;color:var(--ink-2)}.eco-f input,.eco-f select,.eco-f button{font:inherit;font-size:.8rem;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}.eco-f button{cursor:pointer;color:var(--deep);font-weight:600}.eco-f button:hover{background:var(--soft-green)}#eco-stats .vgrid .vcard{grid-column:span 6}#eco-stats .vgrid .vcard.span-12{grid-column:1/-1}@media(max-width:800px){#eco-stats .vgrid .vcard{grid-column:1/-1}}@media print{.eco-f{display:none}}</style>
+<style>.eco-h h2{font-size:1.25rem;margin:22px 0 2px;color:var(--deep)}.eco-h p{margin:0 0 10px;color:var(--muted);font-size:.8rem}.eco-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.eco-f label{font-size:.8rem;color:var(--ink-2)}.eco-f input,.eco-f select,.eco-f button{font:inherit;font-size:.8rem;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}.eco-f button{cursor:pointer;color:var(--deep);font-weight:600}.eco-f button:hover{background:var(--soft-green)}#eco-stats .vgrid .vcard{grid-column:span 6}#eco-stats .vgrid .vcard.span-12{grid-column:1/-1}@media(max-width:800px){#eco-stats .vgrid .vcard{grid-column:1/-1}}#eco-stats .vkpi strong{font-size:1.45rem}#eco-stats .eco-f select{max-width:230px}@media print{.eco-f{display:none}}</style>
 </head>
 <body>
 <div class="sticky-progress" id="progress" style="width: 0%;"></div>
@@ -926,7 +926,7 @@ body.view-viz .viz-pane{display:block}
 
 <section class="report-section" id="tratamento">
   <div class="section-header"><div><span class="eyebrow">03 · Estratégias de tratamento dos dados</span><h3 class="sh-title">Do banco operacional ao indicador, com validação em cada camada</h3><div class="rule-accent"></div></div><p>Python orquestra a conexão; a lógica de limpeza, tipagem, modelagem e KPIs é SQL. Cada camada só consome a anterior, e nenhuma é pulada.</p></div>
-  <div class="steps"><article class="step"><span class="n">01</span><div><h4>Auditoria de contrato antes de ingerir</h4><p>O notebook confere o schema real do PostgreSQL contra um contrato (tabela, colunas e família de tipo). Qualquer divergência interrompe o pipeline antes de gravar na Bronze.</p></div></article><article class="step"><span class="n">02</span><div><h4>Bronze: cópia fiel, com linhagem</h4><p>As 22 tabelas de origem são lidas por JDBC e gravadas por sobrescrita completa, com três colunas de controle: <code>_ingestion_timestamp</code>, <code>_pipeline_run_id</code> e <code>_source_table</code>.</p></div></article><article class="step"><span class="n">03</span><div><h4>Qualidade de dados</h4><p>Regras sobre a Bronze: grão único, <code>NOT NULL</code> do contrato, chave estrangeira sem órfã e duas regras de domínio (condomínio coerente; <code>concluido_em</code> não anterior a <code>iniciado_em</code>). As linhas inválidas são excluídas da Silver e contadas em <code>data_quality_log</code>.</p></div></article><article class="step"><span class="n">04</span><div><h4>Silver: tipagem e privacidade</h4><p>Colunas convertidas para os tipos do contrato e <code>TRIM</code> só onde listado. A coluna <code>senha_hash</code> é removida (conferido por <code>assert</code>) e a contagem precisa bater com <em>bronze − inválidas</em>.</p></div></article><article class="step"><span class="n">05</span><div><h4>Gold: modelo dimensional</h4><p>Nove tabelas de dimensão e fato chegam prontas do Data Mart do PostgreSQL (<code>sp_carga_datamart()</code>); o notebook calcula só a gamificação (quiz, cursos e pontuação). Pontuação é <strong>valor de referência</strong>: <code>credito_confirmado</code> é sempre <code>FALSE</code>.</p></div></article><article class="step"><span class="n">06</span><div><h4>Testes antes de qualquer KPI</h4><p>Unicidade de grão em 14 tabelas, ausência de órfã em 19 relações, bloqueio de 17 colunas sensíveis e pontos nunca negativos. Se um teste falha, o Job para e o <code>data.json</code> não é atualizado.</p></div></article></div>
+  <div class="steps"><article class="step"><span class="n">01</span><div><h4>Auditoria de contrato antes de ingerir</h4><p>O notebook confere o schema real do PostgreSQL contra um contrato (tabela, colunas e família de tipo). Qualquer divergência interrompe o pipeline antes de gravar na Bronze.</p></div></article><article class="step"><span class="n">02</span><div><h4>Bronze: cópia fiel, com linhagem</h4><p>As 22 tabelas de origem são lidas por JDBC e gravadas por sobrescrita completa, com três colunas de controle: <code>_ingestion_timestamp</code>, <code>_pipeline_run_id</code> e <code>_source_table</code>.</p></div></article><article class="step"><span class="n">03</span><div><h4>Qualidade de dados</h4><p>Regras sobre a Bronze: grão único, <code>NOT NULL</code> do contrato, chave estrangeira sem órfã e duas regras de domínio (condomínio coerente; <code>concluido_em</code> não anterior a <code>iniciado_em</code>). As linhas inválidas são excluídas da Silver e contadas em <code>data_quality_log</code>.</p></div></article><article class="step"><span class="n">04</span><div><h4>Silver: tipagem e privacidade</h4><p>Colunas convertidas para os tipos do contrato e <code>TRIM</code> só onde listado. A coluna <code>senha_hash</code> é removida (conferido por <code>assert</code>) e a contagem precisa bater com <em>bronze − inválidas</em>.</p></div></article><article class="step"><span class="n">05</span><div><h4>Gold: modelo dimensional</h4><p>Nove tabelas de dimensão e fato chegam prontas do Data Mart do PostgreSQL (<code>sp_carga_datamart()</code>); o notebook calcula só a gamificação (quiz, cursos e pontuação). Pontuação é <strong>valor de referência</strong>: <code>credito_confirmado</code> é sempre <code>FALSE</code>.</p></div></article><article class="step"><span class="n">06</span><div><h4>Testes antes de qualquer KPI</h4><p>Unicidade de grão em 14 tabelas, ausência de órfã em 19 relações, bloqueio de 17 colunas sensíveis e pontos nunca negativos. Se um teste falha, o Job para e o <code>data.json</code> não é atualizado.</p></div></article><article class="step"><span class="n">07</span><div><h4>Job diário: orquestração, agendamento e publicação</h4><p>No Databricks, o Job <code>ecociente_fluxo_completo_diario</code> encadeia as sete tarefas (01→07). Cada uma só começa se a anterior terminar com sucesso, sem nova tentativa automática, e há uma única execução por vez. O agendamento é <strong>diário às 06h (America/Sao_Paulo)</strong>, com alerta por e-mail se qualquer tarefa falhar. O Job nasce pausado: primeiro roda-se manualmente (<em>Run now</em>) e, validado o resultado, ativa-se o agendamento.</p><p>A relação com o painel é direta: a tarefa 06 recalcula os KPIs na Gold e a 07 exporta o <code>data.json</code> e o publica no GitHub, de onde o dashboard o lê. Como os testes (tarefa 05) vêm antes dos KPIs e da exportação, uma falha interrompe o Job, nada é publicado e o painel continua exibindo o último <code>data.json</code> válido.</p></div></article></div>
   <div class="banner accent">Toda pontuação é valor de referência da configuração vigente — nunca pontos efetivamente creditados a um usuário.</div>
 </section>
 
@@ -2319,17 +2319,22 @@ body.view-viz .viz-pane{display:block}
   });
 })();
 </script><script>
-/* EcoCiente · módulo estatístico: filtros, variações, histogramas e boxplots.
-   Só usa dados reais do data.json. O que o pipeline ainda não exporta aparece como "indisponível". */
+/* EcoCiente · módulo estatístico: filtros, variações vs. período anterior, desvio padrão, histogramas e boxplots.
+   Contrato: data.json gerado por 07_exporta_data_json.py (fatos_diarios, participacao_anonima, notas_quiz_diarias,
+   usuarios_cadastrados_por_dia_tipo, universo_*, comparativos, distribuicoes). Só usa dados reais do data.json;
+   o que o arquivo não traz aparece como "indisponível". */
 (function(){
 var host=document.getElementById('eco-stats');if(!host)return;
 var NS='http://www.w3.org/2000/svg',G='#064E3B',W='#B93C63',S='#A7B7AA',LN='#DCE5DE',MU='#5A6A61',DAY=864e5;
 var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-var D=null,F=null,st={from:0,to:0,tipo:'',cond:'',status:''},T0=0,T1=0;
+var D=null,FP=[],PA=[],NQ=[],USR=[],hasFP=false,hasPA=false,hasNQ=false,T0=0,T1=0,
+    st={from:0,to:0,tipo:'',cond:'',status:'',cat:''};
 function fmt(v,d){if(v==null||!isFinite(v))return 'n/d';var k=Math.pow(10,d==null?1:d);return String(Math.round(v*k)/k).replace('.',',');}
+function int(v){return Number(v).toLocaleString('pt-BR');}
+function sg(v){return v>0?'+':'';}
 function ts(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||'');return m?Date.UTC(+m[1],m[2]-1,+m[3]):null;}
 function iso(t){return new Date(t).toISOString().slice(0,10);}
-function lbl(t){var d=new Date(t);return d.getUTCDate()+' '+MES[d.getUTCMonth()];}
+function lbl(t,y){var d=new Date(t);return d.getUTCDate()+' '+MES[d.getUTCMonth()]+(y?' '+d.getUTCFullYear():'');}
 function el(t,a,p,x){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(x!=null)e.textContent=x;if(p)p.appendChild(e);return e;}
 function div(c,h){var e=document.createElement('div');e.className=c||'';if(h!=null)e.innerHTML=h;return e;}
 function nice(v){var p=Math.pow(10,Math.floor(Math.log(v||1)/Math.LN10)),f=v/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p;}
@@ -2337,98 +2342,163 @@ function q7(a,p){var i=(a.length-1)*p,l=Math.floor(i),h=Math.ceil(i);return a[l]
 /* quartis: interpolação linear (tipo 7); whiskers: último valor dentro de [Q1-1,5·IQR, Q3+1,5·IQR] (Tukey); desvio padrão amostral (n-1) */
 function stats(v){v=v.filter(function(x){return x!=null&&isFinite(x);}).sort(function(a,b){return a-b;});var n=v.length;if(!n)return null;
   var q1=q7(v,.25),md=q7(v,.5),q3=q7(v,.75),i=q3-q1,lo=q1-1.5*i,hi=q3+1.5*i,
-  ins=v.filter(function(x){return x>=lo&&x<=hi;}),mean=v.reduce(function(a,b){return a+b;},0)/n;
-  return {n:n,min:v[0],max:v[n-1],q1:q1,med:md,q3:q3,iqr:i,wl:ins[0],wu:ins[ins.length-1],
-    out:v.filter(function(x){return x<lo||x>hi;}),mean:mean,
+  ins=v.filter(function(x){return x>=lo&&x<=hi;}),mean=v.reduce(function(a,b){return a+b;},0)/n,
+  out=v.filter(function(x){return x<lo||x>hi;});
+  return {n:n,min:v[0],max:v[n-1],q1:q1,med:md,q3:q3,iqr:i,wl:ins[0],wu:ins[ins.length-1],out:out,outN:out.length,mean:mean,
     sd:n>1?Math.sqrt(v.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(n-1)):null,v:v};}
-/* intervalos [a,e): inteiros (contagens) usam largura de Sturges; notas usam faixas fixas de 10 pontos (último inclui 100) */
+/* intervalos [a,e): contagens usam largura de Sturges; notas usam faixas fixas de 10 pontos (último inclui 100) */
 function bins(s,notas){var w,a0,nb,b=[],i;
   if(notas){w=10;a0=0;nb=10;}else{var k=Math.ceil(1+Math.log(s.n)/Math.LN2);w=Math.max(1,Math.ceil((s.max-s.min+1)/k));a0=s.min;nb=Math.floor((s.max-a0)/w)+1;}
   for(i=0;i<nb;i++)b.push({a:a0+i*w,e:a0+(i+1)*w,n:0});
   s.v.forEach(function(x){b[Math.max(0,Math.min(nb-1,Math.floor((x-a0)/w)))].n++;});
   b.forEach(function(x,j){x.l=notas?(x.a+'–'+(j==nb-1?100:x.e)):(w==1?String(x.a):x.a+'–'+(x.e-1));});return b;}
-function expand(fr){var v=[];Object.keys(fr||{}).forEach(function(k){var n=+fr[k],x=+k;if(isFinite(x)&&n>0)for(var i=0;i<n;i++)v.push(x);});return v;}
-/* série diária filtrada: usa fatos_diarios quando existem (filtros de grupo); senão, o total diário do data.json */
-function daily(){var m={},i;
-  if(F){F.forEach(function(r){var t=ts(r.d);if(t==null)return;
-    if((st.tipo&&r.tipo!==st.tipo)||(st.cond&&r.condominio!==st.cond)||(st.status&&r.status!==st.status))return;m[t]=(m[t]||0)+(+r.n||0);});}
-  else{var v=D.postagens_por_dia.valores;for(i=0;i<v.length;i++)m[T0+i*DAY]=v[i];}
-  return m;}
-function sum(m,a,b){var s=0;for(var t=a;t<=b;t+=DAY)s+=m[t]||0;return s;}
+/* usa a distribuição já calculada pelo pipeline (período completo) quando o data.json não traz as linhas para recalcular */
+function pre(p){if(!p||!p.n||!p.histograma||!p.histograma.length)return null;var b=p.boxplot||{};
+  return {n:p.n,mean:p.media,med:p.mediana,sd:p.desvio_padrao_amostral,min:p.minimo,max:p.maximo,q1:b.q1,q3:b.q3,iqr:b.iqr,
+    wl:b.whisker_inferior,wu:b.whisker_superior,out:[],outN:b.outliers_total||0,pre:true,
+    bins:p.histograma.map(function(x){return {a:x.inicio,e:x.fim,n:x.frequencia,l:x.faixa};})};}
 function card(t,sp,sub){var c=div('vcard span-'+sp);c.innerHTML='<h4>'+t+(sub?'<small>'+sub+'</small>':'')+'</h4>';var b=div('vbody');c.appendChild(b);c._b=b;return c;}
 function note(t,w){return div('vnote'+(w?' warn':''),t);}
-function svg(w,h){var s=el('svg',{viewBox:'0 0 '+w+' '+h,role:'img',width:'100%'});s.style.maxWidth=w+'px';s.style.height='auto';return s;}
+function svg(w,h,aria){var s=el('svg',{viewBox:'0 0 '+w+' '+h,role:'img',width:'100%','aria-label':aria||''});s.style.maxWidth=w+'px';s.style.height='auto';s.style.display='block';s.style.margin='0 auto';return s;}
 function axisY(s,L,T,pw,ph,ymax){for(var i=0;i<=4;i++){var y=T+ph-i*ph/4;el('line',{x1:L,x2:L+pw,y1:y,y2:y,stroke:LN},s);el('text',{x:L-6,y:y+4,'text-anchor':'end','font-size':11,fill:MU},s,fmt(ymax*i/4,0));}}
-function hist(host,b,s,xl,yl,unit){var w=520,h=270,L=48,T=14,pw=w-L-14,ph=h-T-52,ym=nice(Math.max.apply(null,b.map(function(x){return x.n;}))),sv=svg(w,h),bw=pw/b.length;
+function yMax(m){var st4=Math.max(1,nice(m/4));return st4*4;}
+function hist(host,s,xl,yl,unit,off){var b=s.bins||bins(s,off===0&&unit==='pts'),w=520,h=270,L=48,T=14,pw=w-L-14,ph=h-T-52,
+  ym=yMax(Math.max.apply(null,b.map(function(x){return x.n;}).concat([1]))),sv=svg(w,h,'Histograma: '+xl),bw=pw/b.length;
   axisY(sv,L,T,pw,ph,ym);
-  b.forEach(function(x,i){var bh=x.n/ym*ph,r=el('rect',{x:L+i*bw+1.5,y:T+ph-bh,width:Math.max(1,bw-3),height:bh,fill:G,rx:2,tabindex:0,'data-tip':x.l+' '+unit+': '+x.n+' ('+fmt(x.n/s.n*100)+'%)'},sv);
+  b.forEach(function(x,i){var bh=x.n/ym*ph;el('rect',{x:L+i*bw+1.5,y:T+ph-bh,width:Math.max(1,bw-3),height:bh,fill:G,rx:2,tabindex:0,'data-tip':x.l+' '+unit+': '+int(x.n)+' ('+fmt(x.n/s.n*100)+'%)'},sv);
     if(b.length<=12||i%2==0)el('text',{x:L+i*bw+bw/2,y:T+ph+15,'text-anchor':'middle','font-size':10.5,fill:MU},sv,x.l);});
-  var span=b[b.length-1].e-b[0].a;function X(v){return L+Math.max(0,Math.min(1,(v-b[0].a)/span))*pw;}
-  [[s.mean,'média',W,'4 3'],[s.med,'mediana',S,'']].forEach(function(m,i){el('line',{x1:X(m[0]),x2:X(m[0]),y1:T,y2:T+ph,stroke:m[2],'stroke-width':2,'stroke-dasharray':m[3]},sv);
-    el('text',{x:Math.min(X(m[0])+4,w-60),y:T+11+i*12,'font-size':10.5,fill:m[2]==S?MU:m[2]},sv,m[1]+' '+fmt(m[0]));});
+  var span=(b[b.length-1].e-b[0].a)||1;function X(v){return L+Math.max(0,Math.min(1,(v+(off||0)-b[0].a)/span))*pw;}
+  [[s.mean,'média',W,'4 3'],[s.med,'mediana',S,'']].forEach(function(m,i){if(m[0]==null)return;
+    el('line',{x1:X(m[0]),x2:X(m[0]),y1:T,y2:T+ph,stroke:m[2],'stroke-width':2,'stroke-dasharray':m[3]},sv);
+    el('text',{x:Math.min(X(m[0])+4,w-70),y:T+11+i*12,'font-size':10.5,fill:m[2]==S?MU:m[2]},sv,m[1]+' '+fmt(m[0]));});
   el('text',{x:L+pw/2,y:h-6,'text-anchor':'middle','font-size':11.5,fill:MU},sv,xl);
-  var yt=el('text',{x:12,y:T+ph/2,'text-anchor':'middle','font-size':11.5,fill:MU,transform:'rotate(-90 12 '+(T+ph/2)+')'},sv,yl);host.appendChild(sv);}
-function boxplot(host,s,xl){var w=520,h=130,L=16,R=16,pw=w-L-R,lo=Math.min(s.min,s.wl),hi=Math.max(s.max,s.wu),pad=(hi-lo||1)*.04,sv=svg(w,h);
+  el('text',{x:12,y:T+ph/2,'text-anchor':'middle','font-size':11.5,fill:MU,transform:'rotate(-90 12 '+(T+ph/2)+')'},sv,yl);host.appendChild(sv);}
+function boxplot(host,s,xl){var w=520,h=130,L=16,R=16,pw=w-L-R,lo=Math.min(s.min,s.wl),hi=Math.max(s.max,s.wu),pad=(hi-lo||1)*.04,sv=svg(w,h,'Boxplot: '+xl);
   function X(v){return L+(v-lo+pad)/(hi-lo+2*pad)*pw;}var cy=48,bh=34;
   for(var i=0;i<=4;i++){var v=lo+(hi-lo)*i/4;el('line',{x1:X(v),x2:X(v),y1:cy+bh/2+14,y2:cy+bh/2+19,stroke:MU},sv);el('text',{x:X(v),y:cy+bh/2+32,'text-anchor':'middle','font-size':10.5,fill:MU},sv,fmt(v,0));}
   el('line',{x1:L,x2:L+pw,y1:cy+bh/2+14,y2:cy+bh/2+14,stroke:LN},sv);
   el('line',{x1:X(s.wl),x2:X(s.q1),y1:cy,y2:cy,stroke:G,'stroke-width':2},sv);el('line',{x1:X(s.q3),x2:X(s.wu),y1:cy,y2:cy,stroke:G,'stroke-width':2},sv);
   [s.wl,s.wu].forEach(function(v){el('line',{x1:X(v),x2:X(v),y1:cy-9,y2:cy+9,stroke:G,'stroke-width':2},sv);});
   el('rect',{x:X(s.q1),y:cy-bh/2,width:Math.max(2,X(s.q3)-X(s.q1)),height:bh,fill:S,stroke:G,'stroke-width':2,rx:3,tabindex:0,
-    'data-tip':'Q1 '+fmt(s.q1)+' · mediana '+fmt(s.med)+' · Q3 '+fmt(s.q3)+' · IQR '+fmt(s.iqr)+' (n='+s.n+')'},sv);
+    'data-tip':'Q1 '+fmt(s.q1)+' · mediana '+fmt(s.med)+' · Q3 '+fmt(s.q3)+' · IQR '+fmt(s.iqr)+' (n='+int(s.n)+')'},sv);
   el('line',{x1:X(s.med),x2:X(s.med),y1:cy-bh/2,y2:cy+bh/2,stroke:W,'stroke-width':3},sv);
-  s.out.forEach(function(v){el('circle',{cx:X(v),cy:cy,r:4,fill:'none',stroke:W,'stroke-width':1.6,tabindex:0,'data-tip':'Outlier: '+fmt(v)},sv);});
+  var oc={};s.out.forEach(function(v){oc[v]=(oc[v]||0)+1;});
+  Object.keys(oc).forEach(function(k){el('circle',{cx:X(+k),cy:cy,r:4,fill:'none',stroke:W,'stroke-width':1.6,tabindex:0,'data-tip':'Outlier: '+fmt(+k)+' ('+int(oc[k])+' ocorrência'+(oc[k]>1?'s':'')+')'},sv);});
   el('text',{x:L+pw/2,y:h-4,'text-anchor':'middle','font-size':11.5,fill:MU},sv,xl);host.appendChild(sv);
-  host.appendChild(div('vnote','Mín '+fmt(s.min)+' · Whisker inf. '+fmt(s.wl)+' · Q1 '+fmt(s.q1)+' · <b>Mediana '+fmt(s.med)+'</b> · Q3 '+fmt(s.q3)+' · Whisker sup. '+fmt(s.wu)+' · Máx '+fmt(s.max)+' · IQR '+fmt(s.iqr)+' · '+s.out.length+' outlier(s). Quartis tipo 7; whiskers a 1,5×IQR (Tukey).'));}
-function dist(){var d=D.distribuicoes||{},pu=d.postagens_por_usuario,nq=d.notas_quiz,out=[];
-  var A=card('Postagens por usuário — histograma',6,'só quem postou · todo o período');
-  var sA=pu&&stats(expand(pu.frequencia));
-  if(!sA)A._b.appendChild(note('Indisponível: o data.json não traz <code>distribuicoes.postagens_por_usuario.frequencia</code> (ver contrato).',1));
-  else{hist(A._b,bins(sA,0),sA,'Postagens por usuário (intervalo)','Usuários','post.');
-    A._b.appendChild(note(sA.n+' usuários postaram'+(pu.usuarios_sem_postagem!=null?'; '+pu.usuarios_sem_postagem+' cadastrados não postaram (fora do histograma)':'')+'. Média '+fmt(sA.mean)+' · mediana '+fmt(sA.med)+'. Concentração: '+fmt(sA.v.filter(function(x){return x<=sA.med;}).length/sA.n*100,0)+'% dos usuários estão em até '+fmt(sA.med,0)+' postagens.'));}
-  var B=card('Notas dos quizzes — histograma',6,'tentativas concluídas');
-  var sB=nq&&stats((nq.notas||[]).map(Number));
-  if(!sB)B._b.appendChild(note('Indisponível: o data.json não traz <code>distribuicoes.notas_quiz.notas</code> (ver contrato).',1));
-  else{hist(B._b,bins(sB,1),sB,'Nota (pontos)','Tentativas','pts');
-    B._b.appendChild(note(sB.n+' tentativas · média '+fmt(sB.mean)+' · mediana '+fmt(sB.med)+' · desvio padrão '+fmt(sB.sd)+(sB.n<30?'. <b>Amostra pequena (n<30): leia como descrição, não como tendência.</b>':''),sB.n<30));}
+  host.appendChild(div('vnote','Mín '+fmt(s.min)+' · Whisker inf. '+fmt(s.wl)+' · Q1 '+fmt(s.q1)+' · <b>Mediana '+fmt(s.med)+'</b> · Q3 '+fmt(s.q3)+' · Whisker sup. '+fmt(s.wu)+' · Máx '+fmt(s.max)+' · IQR '+fmt(s.iqr)+' · '+int(s.outN)+' outlier(s). Quartis tipo 7; whiskers a 1,5×IQR (Tukey).'));}
+
+/* ---------- agregação do recorte (período + grupos) ---------- */
+function grp(){return !!(st.tipo||st.cond||st.status||st.cat);}
+function isAp(s){return /^aprovad/i.test(s||'');}
+function inR(t,a,b){return t!=null&&t>=a&&t<=b;}
+/* status e categoria só existem em postagens; quizzes respondem a período, tipo de usuário e condomínio */
+function win(a,b){var o={post:0,apr:0,quiz:0,day:{},poster:{},notas:[]};
+  FP.forEach(function(r){if(!inR(r._t,a,b))return;if(st.tipo&&r.tipo_usuario!==st.tipo)return;if(st.cond&&r.condominio_key!==st.cond)return;
+    if(r.tipo_evento==='postagem'){if(st.status&&r.status!==st.status)return;if(st.cat&&r.categoria_key!==st.cat)return;
+      o.post+=r.n;o.day[r._t]=(o.day[r._t]||0)+r.n;if(isAp(r.status))o.apr+=r.n;}
+    else if(r.tipo_evento==='quiz')o.quiz+=r.n;});
+  PA.forEach(function(r){if(!r.n_postagens||!inR(r._t,a,b))return;if(st.tipo&&r.tipo_usuario!==st.tipo)return;if(st.cond&&r.condominio_key!==st.cond)return;
+    if(st.status&&r.status!==st.status)return;if(st.cat&&r.categoria_key!==st.cat)return;
+    var p=o.poster[r.usuario_hash]||(o.poster[r.usuario_hash]={n:0,el:!!r.elegivel_universo_temporal});p.n+=r.n_postagens;});
+  NQ.forEach(function(r){if(!inR(r._t,a,b))return;if(st.tipo&&r.tipo_usuario!==st.tipo)return;if(st.cond&&r.condominio_key!==st.cond)return;
+    for(var i=0;i<r.frequencia;i++)o.notas.push(r.nota);});
+  o.users=Object.keys(o.poster).length;return o;}
+function msd(a){var n=a.length;if(!n)return [null,null];var m=a.reduce(function(x,y){return x+y;},0)/n;
+  return [m,n>1?Math.sqrt(a.reduce(function(x,y){return x+(y-m)*(y-m);},0)/(n-1)):null];}
+
+/* ---------- distribuições ---------- */
+function postsPorUsuario(cur,to){
+  if(!hasPA){return {s:pre(D.distribuicoes&&D.distribuicoes.postagens_por_usuario),zeros:null,pre:true};}
+  var vals=Object.keys(cur.poster).map(function(k){return cur.poster[k].n;}),zeros=null;
+  if(!st.cond&&!st.status&&!st.cat&&USR.length){   /* universo conhecido: cadastrados até o fim do recorte, por tipo */
+    var U=0;USR.forEach(function(r){if(r._t<=to&&(!st.tipo||r.tipo_usuario===st.tipo))U+=r.usuarios;});
+    var el_=0;Object.keys(cur.poster).forEach(function(k){if(cur.poster[k].el)el_++;});
+    zeros=Math.max(0,U-el_);for(var i=0;i<zeros;i++)vals.push(0);}
+  return {s:stats(vals),zeros:zeros};}
+function dist(cur,to){var out=[],pp=postsPorUsuario(cur,to),sA=pp.s,nq=D.distribuicoes&&D.distribuicoes.notas_quiz,
+  sB=hasNQ?stats(cur.notas):pre(nq);
+  var A=card('Postagens por usuário — histograma',6,pp.pre?'período completo (calculado no pipeline)':(pp.zeros!=null?'inclui quem não postou · recorte atual':'só quem postou · recorte atual'));
+  if(!sA)A._b.appendChild(note('Sem dados: não há usuários com postagens neste recorte (ou o data.json não traz <code>participacao_anonima</code>/<code>distribuicoes</code>).',1));
+  else{hist(A._b,sA,'Postagens por usuário (intervalo)','Usuários','post.',sA.pre?0:.5);
+    A._b.appendChild(note(int(sA.n)+' usuários · média '+fmt(sA.mean)+' · mediana '+fmt(sA.med)+' · desvio padrão '+fmt(sA.sd)+
+      (pp.zeros!=null?'. '+int(pp.zeros)+' sem nenhuma postagem no recorte.':(pp.pre?'':'. Com filtro de condomínio, status ou categoria o universo de quem não postou não é conhecido; exibe só quem postou.'))));}
+  var B=card('Notas dos quizzes — histograma',6,hasNQ?'tentativas concluídas com nota · recorte atual':'período completo (calculado no pipeline)');
+  if(!sB)B._b.appendChild(note('Sem dados: nenhuma tentativa de quiz com nota neste recorte.',1));
+  else{hist(B._b,sB,'Nota (faixas de 10 pontos)','Tentativas','pts',0);
+    B._b.appendChild(note(int(sB.n)+' tentativas · média '+fmt(sB.mean)+' · mediana '+fmt(sB.med)+' · desvio padrão '+fmt(sB.sd)+(sB.n<30?'. <b>Amostra pequena (n&lt;30): leia como descrição, não como tendência.</b>':''),sB.n<30));}
   var C1=card('Boxplot — postagens por usuário',6),C2=card('Boxplot — notas dos quizzes',6);
-  if(sA)boxplot(C1._b,sA,'Postagens por usuário');else C1._b.appendChild(note('Indisponível sem a distribuição de postagens.',1));
+  if(sA&&sA.n>=5)boxplot(C1._b,sA,'Postagens por usuário');else C1._b.appendChild(note(sA?'Dados insuficientes (n='+sA.n+'; mínimo 5) para um boxplot confiável.':'Indisponível sem a distribuição de postagens.',1));
   if(sB&&sB.n>=5)boxplot(C2._b,sB,'Nota (pontos)');else C2._b.appendChild(note(sB?'Dados insuficientes (n='+sB.n+'; mínimo 5) para um boxplot confiável.':'Indisponível sem as notas dos quizzes.',1));
   return [A,B,C1,C2];}
-function render(){host.innerHTML='';var m=daily(),from=st.from,to=st.to,len=Math.round((to-from)/DAY)+1,
-  cur=sum(m,from,to),pT=from-DAY,pF=pT-(len-1)*DAY,hasPrev=pF>=T0,prev=hasPrev?sum(m,pF,pT):null;
-  var bar=div('eco-f');bar.innerHTML='<label>De <input type="date" id="ef" min="'+iso(T0)+'" max="'+iso(T1)+'" value="'+iso(from)+'"></label><label>Até <input type="date" id="et" min="'+iso(T0)+'" max="'+iso(T1)+'" value="'+iso(to)+'"></label>'+
+
+/* ---------- KPIs com variação ---------- */
+function kpiBox(l,v,sub){var k=div('vkpi');k.innerHTML='<div><span class="vkpi-l">'+l+'</span><strong>'+v+'</strong><span class="vkpi-s">'+sub+'</span></div>';return k;}
+function render(){host.innerHTML='';
+  var from=st.from,to=st.to,len=Math.round((to-from)/DAY)+1,cur=win(from,to),pT=from-DAY,pF=pT-(len-1)*DAY,
+      full=(from===T0&&to===T1&&!grp()),C=D.comparativos,prev=null,plab='';
+  if(full&&C&&C.periodo_anterior&&C.postagens_total){
+    prev={post:C.postagens_total.periodo_anterior,users:C.usuarios_que_postaram&&C.usuarios_que_postaram.periodo_anterior,quiz:C.quiz_respondidos&&C.quiz_respondidos.periodo_anterior,
+          rate:C.taxa_aprovacao_postagens&&C.taxa_aprovacao_postagens.periodo_anterior,qrate:C.taxa_aprovacao_quiz&&C.taxa_aprovacao_quiz.periodo_anterior};
+    plab='período anterior ('+lbl(ts(C.periodo_anterior.data_inicio),1)+' – '+lbl(ts(C.periodo_anterior.data_fim),1)+')';}
+  else if(hasFP&&pF>=T0){var p=win(pF,pT);prev={post:p.post,users:p.users,quiz:p.quiz,rate:p.post?100*p.apr/p.post:null,qrate:null};
+    plab=len+' dias anteriores ('+lbl(pF,1)+' – '+lbl(pT,1)+')';}
+  function vs(c,p,pp){if(p==null||c==null||!prev)return 'sem período anterior comparável';var d=c-p;
+    if(pp)return sg(d)+fmt(d)+' p.p. vs. anterior ('+fmt(p)+'%)';
+    return sg(d)+int(d)+' ('+(p>0?sg(d)+fmt(d/p*100)+'%':'variação % n/d: base anterior = 0')+') vs. anterior ('+int(p)+')';}
+  var bar=div('eco-f');
+  bar.innerHTML='<label>De <input type="date" id="ef" min="'+iso(T0)+'" max="'+iso(T1)+'" value="'+iso(from)+'"></label><label>Até <input type="date" id="et" min="'+iso(T0)+'" max="'+iso(T1)+'" value="'+iso(to)+'"></label>'+
     '<button data-q="7">Últimos 7 dias</button><button data-q="30">Últimos 30 dias</button><button data-q="m">Mês atual</button><button data-q="all">Período completo</button>';
-  function sel(k,tt,vals){var s=document.createElement('select');s.setAttribute('aria-label',tt);s.innerHTML='<option value="">'+tt+': todos</option>'+vals.map(function(v){return '<option'+(st[k]===v?' selected':'')+'>'+v+'</option>';}).join('');
-    if(!F){s.disabled=true;s.title='Requer fatos_diarios no data.json (pipeline).';}s.onchange=function(){st[k]=s.value;render();};bar.appendChild(s);}
-  function uniq(k){var o={};(F||[]).forEach(function(r){if(r[k])o[r[k]]=1;});return Object.keys(o).sort();}
-  sel('tipo','Tipo de usuário',uniq('tipo'));sel('cond','Condomínio',uniq('condominio'));sel('status','Status da postagem',uniq('status'));
-  var rs=document.createElement('button');rs.textContent='Limpar filtros';rs.onclick=function(){quick('all');st.tipo=st.cond=st.status='';render();};bar.appendChild(rs);
+  function sel(k,tt,opts){var s=document.createElement('select'),o=document.createElement('option');s.setAttribute('aria-label',tt);o.value='';o.textContent=tt+': todos';s.appendChild(o);
+    opts.forEach(function(x){var e=document.createElement('option');e.value=x[0];e.textContent=x[1];if(st[k]===x[0])e.selected=true;s.appendChild(e);});
+    if(!hasFP||!opts.length){s.disabled=true;s.title='Requer fatos_diarios e universo_* no data.json (pipeline).';}
+    s.onchange=function(){st[k]=s.value;render();};bar.appendChild(s);}
+  sel('tipo','Tipo de usuário',(D.universo_usuarios_por_tipo||[]).map(function(x){return [x.tipo_usuario,x.tipo_usuario];}));
+  sel('cond','Condomínio',(D.universo_condominios||[]).map(function(x){return [x.condominio_key,x.condominio];}));
+  sel('status','Status da postagem',(D.universo_status_postagem||[]).map(function(x){return [x,x];}));
+  sel('cat','Categoria de resíduo',(D.universo_categorias||[]).map(function(x){return [x.categoria_key,x.categoria];}));
+  var rs=document.createElement('button');rs.textContent='Limpar filtros';rs.onclick=function(){quick('all');st.tipo=st.cond=st.status=st.cat='';render();};bar.appendChild(rs);
   bar.onclick=function(e){var q=e.target.getAttribute&&e.target.getAttribute('data-q');if(q){quick(q);render();}};
-  bar.querySelector('#ef').onchange=function(e){var t=ts(e.target.value);if(t!=null){st.from=Math.min(t,st.to);render();}};
-  bar.querySelector('#et').onchange=function(e){var t=ts(e.target.value);if(t!=null){st.to=Math.max(t,st.from);render();}};
-  host.appendChild(div('eco-h','<h2>Distribuição e dispersão</h2><p>Período: '+lbl(from)+' – '+lbl(to)+' ('+len+' dias)</p>'));host.appendChild(bar);
-  if(!F)host.appendChild(note('Filtros por grupo desativados: o pipeline ainda não exporta <code>fatos_diarios</code>. O filtro de período já recalcula a série e os KPIs abaixo.'));
-  var k=div('vkpis'),dl=hasPrev?cur-prev:null,pc=hasPrev&&prev>0?dl/prev*100:null;
-  k.innerHTML='<div class="vkpi"><div><span class="vkpi-l">Postagens no período</span><strong>'+cur.toLocaleString('pt-BR')+'</strong><span class="vkpi-s">'+
-   (!hasPrev?'sem período anterior comparável (começa antes do 1º dado)':(dl>=0?'+':'')+dl.toLocaleString('pt-BR')+' postagens ('+(pc==null?'n/d: base anterior = 0':(pc>=0?'+':'')+fmt(pc)+'%')+') vs. '+len+' dias anteriores ('+prev.toLocaleString('pt-BR')+')')+'</span></div></div>';
-  var qs=D.distribuicoes&&D.distribuicoes.notas_quiz&&stats((D.distribuicoes.notas_quiz.notas||[]).map(Number));
-  k.innerHTML+='<div class="vkpi"><div><span class="vkpi-l">Desvio padrão das notas</span><strong>'+(qs&&qs.sd!=null?fmt(qs.sd):'n/d')+'</strong><span class="vkpi-s">'+(qs?'amostral, '+qs.n+' tentativas · dispersão, não variação temporal':'notas não exportadas')+'</span></div></div>';
+  bar.querySelector('#ef').onchange=function(e){var t=ts(e.target.value);if(t!=null){st.from=Math.min(Math.max(t,T0),st.to);render();}};
+  bar.querySelector('#et').onchange=function(e){var t=ts(e.target.value);if(t!=null){st.to=Math.max(Math.min(t,T1),st.from);render();}};
+  host.appendChild(div('eco-h','<h2>Filtros, variações e distribuições</h2><p>Recorte: '+lbl(from,1)+' – '+lbl(to,1)+' ('+len+' dias)'+(grp()?' · filtros de grupo ativos':'')+'</p>'));
+  host.appendChild(bar);
+  if(!hasFP)host.appendChild(note('Filtros por grupo e variações recalculáveis desativados: este data.json ainda não traz <code>fatos_diarios</code>. Execute o Job (Run now) para regenerá-lo. O filtro de período continua valendo para a série diária.'));
+  else host.appendChild(note('Status e categoria filtram apenas postagens; quizzes respondem a período, tipo de usuário e condomínio.'));
+  /* KPIs */
+  var post=hasFP?cur.post:Object.keys(cur.day).reduce(function(a,k){return a+cur.day[k];},0),
+      rate=hasFP&&cur.post?100*cur.apr/cur.post:null,days=[],t;
+  for(t=from;t<=to;t+=DAY)days.push(cur.day[t]||0);
+  var ds=msd(days),nS=hasNQ?stats(cur.notas):pre(D.distribuicoes&&D.distribuicoes.notas_quiz),k=div('vkpis');
+  k.style.gridTemplateColumns='repeat(auto-fit,minmax(230px,1fr))';
+  k.appendChild(kpiBox('Postagens no recorte',int(post),vs(post,prev&&prev.post)));
+  if(hasPA)k.appendChild(kpiBox('Usuários que postaram',int(cur.users),vs(cur.users,prev&&prev.users)));
+  if(hasFP){k.appendChild(kpiBox('Quizzes respondidos',int(cur.quiz),vs(cur.quiz,prev&&prev.quiz)));
+    k.appendChild(kpiBox('Aprovação das postagens',rate==null?'n/d':fmt(rate)+'%',st.status?'n/d com filtro de status':vs(rate,prev&&prev.rate,1)));}
+  k.appendChild(kpiBox('Postagens por dia',ds[0]==null?'n/d':fmt(ds[0])+' ± '+fmt(ds[1]),'média ± desvio padrão amostral de '+len+' dias'));
+  k.appendChild(kpiBox('Nota dos quizzes',nS?fmt(nS.mean):'n/d',nS?('desvio padrão '+fmt(nS.sd)+' · mediana '+fmt(nS.med)+' · n='+int(nS.n)+(nS.n<30?' (amostra pequena)':'')):(hasNQ||(D.distribuicoes&&D.distribuicoes.notas_quiz)?'sem tentativas com nota no recorte':'notas não exportadas neste data.json')));
   host.appendChild(k);
-  var g=div('vgrid'),cd=card('Postagens por dia',12,lbl(from)+' – '+lbl(to));
-  if(!len||cur===0&&!Object.keys(m).length)cd._b.appendChild(note('Nenhum registro para os filtros selecionados.',1));
-  else{var vals=[],t;for(t=from;t<=to;t+=DAY)vals.push(m[t]||0);var mx=nice(Math.max.apply(null,vals.concat([1]))),w=900,h=220,L=44,T=12,pw=w-L-10,ph=h-T-30,sv=svg(w,h),bw=pw/vals.length;
-    axisY(sv,L,T,pw,ph,mx);vals.forEach(function(v,i){var bh=v/mx*ph;el('rect',{x:L+i*bw,y:T+ph-bh,width:Math.max(.6,bw-.6),height:bh,fill:G,'data-tip':lbl(from+i*DAY)+': '+v+' postagens'},sv);});
-    [0,Math.floor((vals.length-1)/2),vals.length-1].forEach(function(i){el('text',{x:L+i*bw,y:h-8,'text-anchor':i?(i==vals.length-1?'end':'middle'):'start','font-size':11,fill:MU},sv,lbl(from+i*DAY));});cd._b.appendChild(sv);}
-  g.appendChild(cd);dist().forEach(function(c){g.appendChild(c);});host.appendChild(g);
-  host.appendChild(note('Histogramas e boxplots cobrem todo o período (distribuição por usuário não é recalculável por data sem identificar pessoas); filtros de data/grupo alteram a série diária e as variações. Variação ≠ desvio padrão; aumento não é, por si só, melhoria.'));}
-function quick(q){var e=T1;if(q=='all'){st.from=T0;st.to=T1;}else if(q=='m'){var d=new Date(T1);st.from=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1);st.to=T1;}else{st.from=Math.max(T0,e-(+q-1)*DAY);st.to=e;}}
-function start(j){D=j;F=Array.isArray(j.fatos_diarios)&&j.fatos_diarios.length?j.fatos_diarios:null;T0=ts(j.meta&&j.meta.data_inicio);T1=ts(j.meta&&j.meta.data_fim);
-  if(T0==null||T1==null||!j.postagens_por_dia){host.appendChild(note('Módulo indisponível: faltam meta.data_inicio/data_fim ou postagens_por_dia no data.json.',1));return;}
-  st.from=Math.max(T0,T1-29*DAY);st.to=T1;render();}
+  if(prev)host.appendChild(note('Comparação com '+plab+'.'));
+  if(full&&prev&&prev.qrate!=null&&C.taxa_aprovacao_quiz)host.appendChild(note('Aprovação dos quizzes: '+fmt(C.taxa_aprovacao_quiz.atual)+'% ('+(C.taxa_aprovacao_quiz.variacao_pontos_percentuais>=0?'+':'')+fmt(C.taxa_aprovacao_quiz.variacao_pontos_percentuais)+' p.p. vs. '+plab+').'));
+  /* série diária */
+  var g=div('vgrid'),cd=card('Postagens por dia',12,lbl(from,1)+' – '+lbl(to,1));
+  if(!len||!post)cd._b.appendChild(note('Nenhum registro para os filtros selecionados.',1));
+  else{var mx=yMax(Math.max.apply(null,days.concat([1]))),w=900,h=220,L=44,T=12,pw=w-L-10,ph=h-T-30,sv=svg(w,h,'Postagens por dia no recorte'),bw=pw/days.length;
+    axisY(sv,L,T,pw,ph,mx);days.forEach(function(v,i){var bh=v/mx*ph;el('rect',{x:L+i*bw,y:T+ph-bh,width:Math.max(.6,bw-.6),height:bh,fill:G,'data-tip':lbl(from+i*DAY,1)+': '+int(v)+' postagens'},sv);});
+    [0,Math.floor((days.length-1)/2),days.length-1].forEach(function(i){el('text',{x:L+i*bw,y:h-8,'text-anchor':i?(i==days.length-1?'end':'middle'):'start','font-size':11,fill:MU},sv,lbl(from+i*DAY,1));});cd._b.appendChild(sv);}
+  g.appendChild(cd);dist(cur,to).forEach(function(c){g.appendChild(c);});host.appendChild(g);
+  host.appendChild(note('Variação compara o recorte com a janela imediatamente anterior de mesma duração; desvio padrão mede dispersão, não variação no tempo. Aumento não é, por si só, melhoria. Distribuições por usuário usam um código anônimo gerado a cada exportação (sem nomes, e-mails ou IDs).'));}
+function quick(q){if(q=='all'){st.from=T0;st.to=T1;}else if(q=='m'){var d=new Date(T1);st.from=Math.max(T0,Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1));st.to=T1;}else{st.from=Math.max(T0,T1-(+q-1)*DAY);st.to=T1;}}
+function start(j){D=j;T0=ts(j.meta&&j.meta.data_inicio);T1=ts(j.meta&&j.meta.data_fim);
+  if(T0==null||T1==null||!j.postagens_por_dia){host.innerHTML='';host.appendChild(note('Módulo indisponível: faltam meta.data_inicio/data_fim ou postagens_por_dia. Abra o painel por http(s) (GitHub Pages ou servidor local) para carregar o data.json atual.',1));return;}
+  hasFP=Array.isArray(j.fatos_diarios)&&j.fatos_diarios.length>0;hasPA=Array.isArray(j.participacao_anonima);hasNQ=Array.isArray(j.notas_quiz_diarias);
+  FP=hasFP?j.fatos_diarios.map(function(r){r._t=ts(r.d);return r;}):[];PA=hasPA?j.participacao_anonima.map(function(r){r._t=ts(r.d);return r;}):[];
+  NQ=hasNQ?j.notas_quiz_diarias.map(function(r){r._t=ts(r.d);return r;}):[];
+  USR=(j.usuarios_cadastrados_por_dia_tipo||[]).map(function(r){r._t=ts(r.d);return r;});
+  if(!hasFP){var v=j.postagens_por_dia.valores;FP=[];for(var i=0;i<v.length;i++)FP.push({_t:T0+i*DAY,tipo_evento:'postagem',tipo_usuario:'',condominio_key:null,status:null,categoria_key:null,n:v[i]});}
+  st.from=T0;st.to=T1;render();}
 function fail(){try{start(JSON.parse(document.getElementById('viz-data').textContent));}catch(e){host.appendChild(note('Não foi possível carregar os dados.',1));}}
 if(/^https?:/.test(location.protocol)&&window.fetch)fetch('data.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject();}).then(start).catch(fail);else fail();
-window.EcoStats={stats:stats,bins:bins,expand:expand};
+window.EcoStats={stats:stats,bins:bins};
 })();
 </script><div class="vtip" hidden=""></div>
 
