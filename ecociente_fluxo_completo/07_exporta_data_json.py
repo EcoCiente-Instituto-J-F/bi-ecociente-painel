@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # EcoCiente | 07 — Exporta JSON e publica no GitHub
-# MAGIC Lê a camada Gold e preserva a estrutura do painel: nove blocos, sete campos em `meta` e 15 KPIs.
+# MAGIC Lê a camada Gold e preserva os nove blocos originais, os sete campos em `meta` e os 15 KPIs originais; acrescenta distribuições, comparativos e agregados para filtros.
 # MAGIC Salva no Volume `/Volumes/workspace/ecociente_gold/exports` e mantém a publicação por API
 # MAGIC no repositório `EcoCiente-Instituto-J-F/bi-ecociente-painel`, branch `main`, arquivo `data.json`.
 # MAGIC
@@ -131,7 +131,11 @@ SELECT
     COUNT(*) AS respondidos,
     COUNT(CASE WHEN aprovado THEN 1 END) AS aprovados,
     COUNT(CASE WHEN NOT aprovado THEN 1 END) AS reprovados,
-    ROUND(AVG(nota), 2) AS nota_media
+    COUNT(nota) AS tentativas_com_nota,
+    COUNT(*) - COUNT(nota) AS tentativas_sem_nota,
+    ROUND(AVG(nota), 2) AS nota_media,
+    ROUND(STDDEV_SAMP(nota), 2) AS nota_desvio_padrao_amostral,
+    ROUND(percentile_approx(nota, 0.5, 10000), 2) AS nota_mediana
 FROM {g('fato_tentativas_quiz')}
 WHERE concluido_em IS NOT NULL AND data_key IN {PERIODO_SQL}
 """)
@@ -151,6 +155,12 @@ KPIS = {
     "quiz_aprovados":         to_int(quiz.get("aprovados")),
     "quiz_reprovados":        to_int(quiz.get("reprovados")),
     "nota_media":             to_float(quiz.get("nota_media")),
+    "tentativas_com_nota":    to_int(quiz.get("tentativas_com_nota")),
+    "tentativas_sem_nota":    to_int(quiz.get("tentativas_sem_nota")),
+    "nota_desvio_padrao_amostral": (to_float(quiz.get("nota_desvio_padrao_amostral"))
+                                     if quiz.get("nota_desvio_padrao_amostral") is not None else None),
+    "nota_mediana":           (to_float(quiz.get("nota_mediana"))
+                                if quiz.get("nota_mediana") is not None else None),
 }
 # usuários distintos que postaram no período (participação real, sem depender de cadastro "ativo")
 _postaram = q1(f"""
@@ -270,13 +280,15 @@ POSTAGENS_DIA = {
     "valores": [por_dia.get(d, 0) for d in calendario],
 }
 
-# --- quizzes aprovados por dia (fato_pontuacao, evento 'quiz_aprovado')
+# --- quizzes aprovados por dia: uma linha por tentativa concluída e aprovada.
+# fato_pontuacao é referência de pontos, não o universo de tentativas de quiz.
 quiz_dia = {
     r["dia"]: to_int(r["total"])
     for r in q(f"""
         SELECT t.data AS dia, COUNT(*) AS total
-        FROM {g('fato_pontuacao')} fp JOIN {g('dim_tempo')} t ON t.data_key = fp.data_key
-        WHERE fp.tipo_evento_referencia = 'quiz_aprovado'
+        FROM {g('fato_tentativas_quiz')} ft
+        JOIN {g('dim_tempo')} t ON t.data_key = ft.data_key
+        WHERE ft.concluido_em IS NOT NULL AND ft.aprovado = TRUE
           AND t.data BETWEEN DATE'{INI}' AND DATE'{FIM}'
         GROUP BY t.data
     """)
@@ -300,6 +312,373 @@ CURSOS = [
         GROUP BY c.titulo_curso ORDER BY total DESC
     """)
 ]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 04B — Distribuições, filtros e comparativos
+# MAGIC As novas granularidades são agregadas por dia/dimensões. A única chave por pessoa
+# MAGIC é um hash efêmero com sal aleatório por exportação; o sal e os IDs naturais não são exportados.
+
+# COMMAND ----------
+
+import secrets
+import math
+
+# O identificador pseudônimo só permite somar eventos da mesma pessoa dentro deste snapshot.
+# A cada exportação o sal muda, impedindo a ligação direta entre snapshots.
+_HASH_SALT = secrets.token_hex(16)
+
+# Agregados diários para KPIs do recorte e filtros por tipo, condomínio, status e categoria.
+FATOS_DIARIOS = [
+    {
+        "d": str(r["d"]), "tipo_evento": "postagem",
+        "tipo_usuario": r["tipo_usuario"],
+        "condominio_key": str(r["condominio_key"]) if r["condominio_key"] is not None else None,
+        "condominio": r["condominio"], "status": r["status"],
+        "categoria_key": str(r["categoria_key"]) if r["categoria_key"] is not None else None,
+        "categoria": r["categoria"], "n": to_int(r["n"])
+    }
+    for r in q(f"""
+        SELECT CAST(t.data AS STRING) AS d,
+               COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+               f.condominio_key,
+               COALESCE(c.nome_condominio, 'Não informado') AS condominio,
+               COALESCE(s.status_postagem, 'Não informado') AS status,
+               CAST(f.categoria_residuo_key AS STRING) AS categoria_key,
+               COALESCE(cat.nome_categoria, 'Não informada') AS categoria,
+               COUNT(*) AS n
+        FROM {g('fato_postagens')} f
+        JOIN {g('dim_tempo')} t ON t.data_key = f.data_key
+        LEFT JOIN {g('dim_usuario')} u ON u.usuario_key = f.usuario_key
+        LEFT JOIN {g('dim_condominio')} c ON c.condominio_key = f.condominio_key
+        LEFT JOIN {g('dim_status_postagem')} s ON s.status_postagem_key = f.status_postagem_key
+        LEFT JOIN {g('dim_categoria_residuo')} cat ON cat.categoria_residuo_key = f.categoria_residuo_key
+        WHERE t.data BETWEEN DATE'{INI}' AND DATE'{FIM}'
+        GROUP BY t.data, u.tipo_usuario, f.condominio_key, c.nome_condominio,
+                 s.status_postagem, f.categoria_residuo_key, cat.nome_categoria
+    """)
+]
+FATOS_DIARIOS.extend([
+    {
+        "d": str(r["d"]), "tipo_evento": "quiz",
+        "tipo_usuario": r["tipo_usuario"],
+        "condominio_key": str(r["condominio_key"]) if r["condominio_key"] is not None else None,
+        "condominio": r["condominio"], "status": None,
+        "categoria_key": None, "categoria": None, "n": to_int(r["n"])
+    }
+    for r in q(f"""
+        SELECT CAST(t.data AS STRING) AS d,
+               COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+               ft.condominio_key,
+               COALESCE(c.nome_condominio, 'Não informado') AS condominio,
+               COUNT(*) AS n
+        FROM {g('fato_tentativas_quiz')} ft
+        JOIN {g('dim_tempo')} t ON t.data_key = ft.data_key
+        LEFT JOIN {g('dim_usuario')} u ON u.usuario_key = ft.usuario_key
+        LEFT JOIN {g('dim_condominio')} c ON c.condominio_key = ft.condominio_key
+        WHERE ft.concluido_em IS NOT NULL
+          AND t.data BETWEEN DATE'{INI}' AND DATE'{FIM}'
+        GROUP BY t.data, u.tipo_usuario, ft.condominio_key, c.nome_condominio
+    """)
+])
+
+# Universos disponíveis para os controles; não envia nomes/e-mails/IDs de pessoas.
+UNIVERSO_USUARIOS_POR_TIPO = [
+    {"tipo_usuario": r["tipo_usuario"], "usuarios": to_int(r["usuarios"])}
+    for r in q(f"""
+        SELECT COALESCE(tipo_usuario, 'Não informado') AS tipo_usuario, COUNT(*) AS usuarios
+        FROM {g('dim_usuario')} GROUP BY COALESCE(tipo_usuario, 'Não informado')
+        ORDER BY tipo_usuario
+    """)
+]
+UNIVERSO_CONDOMINIOS = [
+    {"condominio_key": str(r["condominio_key"]), "condominio": r["nome_condominio"] or "Não informado"}
+    for r in q(f"""
+        SELECT condominio_key, nome_condominio FROM {g('dim_condominio')}
+        ORDER BY nome_condominio, condominio_key
+    """)
+]
+UNIVERSO_CATEGORIAS = [
+    {"categoria_key": str(r["categoria_residuo_key"]), "categoria": r["nome_categoria"] or "Não informada"}
+    for r in q(f"""
+        SELECT categoria_residuo_key, nome_categoria FROM {g('dim_categoria_residuo')}
+        ORDER BY nome_categoria, categoria_residuo_key
+    """)
+]
+UNIVERSO_STATUS_POSTAGEM = [
+    r["status_postagem"] for r in q(f"""
+        SELECT DISTINCT status_postagem FROM {g('dim_status_postagem')}
+        WHERE status_postagem IS NOT NULL ORDER BY status_postagem
+    """)
+]
+USUARIOS_CADASTRADOS_POR_DIA_TIPO = [
+    {"d": str(r["d"]), "tipo_usuario": r["tipo_usuario"], "usuarios": to_int(r["usuarios"])}
+    for r in q(f"""
+        SELECT CAST(registro_em AS DATE) AS d,
+               COALESCE(tipo_usuario, 'Não informado') AS tipo_usuario,
+               COUNT(*) AS usuarios
+        FROM {g('dim_usuario')}
+        WHERE registro_em IS NOT NULL AND CAST(registro_em AS DATE) <= DATE'{FIM}'
+        GROUP BY CAST(registro_em AS DATE), COALESCE(tipo_usuario, 'Não informado')
+        ORDER BY d, tipo_usuario
+    """)
+]
+
+# Pseudonimização efêmera para permitir somar postagens por usuário após filtros de datas/dimensões.
+# Hashes não são IDs naturais e o sal não é incluído no JSON.
+PARTICIPACAO_ANONIMA = [
+    {
+        "d": str(r["d"]), "usuario_hash": r["usuario_hash"],
+        "tipo_usuario": r["tipo_usuario"], "elegivel_universo_temporal": bool(r["elegivel_universo_temporal"]),
+        "condominio_key": str(r["condominio_key"]) if r["condominio_key"] is not None else None,
+        "status": r["status"], "categoria_key": str(r["categoria_key"]) if r["categoria_key"] is not None else None,
+        "n_postagens": to_int(r["n_postagens"]), "n_quizzes": to_int(r["n_quizzes"])
+    }
+    for r in q(f"""
+        WITH eventos AS (
+            SELECT CAST(t.data AS STRING) AS d,
+                   sha2(concat('{_HASH_SALT}', ':', CAST(f.usuario_key AS STRING)), 256) AS usuario_hash,
+                   COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+                   CASE WHEN u.registro_em IS NOT NULL AND CAST(u.registro_em AS DATE) <= DATE'{FIM}' THEN TRUE ELSE FALSE END AS elegivel_universo_temporal,
+                   f.condominio_key, COALESCE(s.status_postagem, 'Não informado') AS status,
+                   CAST(f.categoria_residuo_key AS STRING) AS categoria_key,
+                   COUNT(*) AS n_postagens, CAST(0 AS BIGINT) AS n_quizzes
+            FROM {g('fato_postagens')} f
+            JOIN {g('dim_tempo')} t ON t.data_key = f.data_key
+            LEFT JOIN {g('dim_usuario')} u ON u.usuario_key = f.usuario_key
+            LEFT JOIN {g('dim_status_postagem')} s ON s.status_postagem_key = f.status_postagem_key
+            WHERE t.data BETWEEN DATE'{INI}' AND DATE'{FIM}' AND f.usuario_key IS NOT NULL
+            GROUP BY t.data, f.usuario_key, u.tipo_usuario, u.registro_em, f.condominio_key,
+                     s.status_postagem, f.categoria_residuo_key
+            UNION ALL
+            SELECT CAST(t.data AS STRING) AS d,
+                   sha2(concat('{_HASH_SALT}', ':', CAST(ft.usuario_key AS STRING)), 256) AS usuario_hash,
+                   COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+                   CASE WHEN u.registro_em IS NOT NULL AND CAST(u.registro_em AS DATE) <= DATE'{FIM}' THEN TRUE ELSE FALSE END AS elegivel_universo_temporal,
+                   ft.condominio_key, CAST(NULL AS STRING) AS status, CAST(NULL AS STRING) AS categoria_key,
+                   CAST(0 AS BIGINT) AS n_postagens, COUNT(*) AS n_quizzes
+            FROM {g('fato_tentativas_quiz')} ft
+            JOIN {g('dim_tempo')} t ON t.data_key = ft.data_key
+            LEFT JOIN {g('dim_usuario')} u ON u.usuario_key = ft.usuario_key
+            WHERE ft.concluido_em IS NOT NULL AND t.data BETWEEN DATE'{INI}' AND DATE'{FIM}'
+              AND ft.usuario_key IS NOT NULL
+            GROUP BY t.data, ft.usuario_key, u.tipo_usuario, u.registro_em, ft.condominio_key
+        )
+        SELECT d, usuario_hash, tipo_usuario, elegivel_universo_temporal, condominio_key,
+               status, categoria_key, SUM(n_postagens) AS n_postagens, SUM(n_quizzes) AS n_quizzes
+        FROM eventos
+        GROUP BY d, usuario_hash, tipo_usuario, elegivel_universo_temporal, condominio_key, status, categoria_key
+    """)
+]
+
+# Universo anonimizado de usuários: permite incluir zero postagens em recortes por tipo
+# sem expor nomes, e-mails ou IDs naturais no JSON.
+UNIVERSO_USUARIOS_ANONIMO = [
+    {
+        "usuario_hash": r["usuario_hash"],
+        "tipo_usuario": r["tipo_usuario"],
+        "registro_em": str(r["registro_em"]) if r["registro_em"] is not None else None,
+    }
+    for r in q(f"""
+        SELECT
+            sha2(concat('{_HASH_SALT}', ':', CAST(usuario_key AS STRING)), 256) AS usuario_hash,
+            COALESCE(tipo_usuario, 'Não informado') AS tipo_usuario,
+            CAST(registro_em AS DATE) AS registro_em
+        FROM {g('dim_usuario')}
+        WHERE registro_em IS NOT NULL AND CAST(registro_em AS DATE) <= DATE'{FIM}'
+    """)
+]
+
+# Notas: apenas tentativas concluídas com nota numérica. A tabela mantém contagens, não linhas individuais.
+NOTAS_QUIZ_DIARIAS = [
+    {"d": str(r["d"]), "tipo_usuario": r["tipo_usuario"],
+     "condominio_key": str(r["condominio_key"]) if r["condominio_key"] is not None else None,
+     "nota": to_float(r["nota"]), "frequencia": to_int(r["frequencia"])}
+    for r in q(f"""
+        SELECT CAST(t.data AS STRING) AS d,
+               COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+               ft.condominio_key, CAST(ft.nota AS DOUBLE) AS nota, COUNT(*) AS frequencia
+        FROM {g('fato_tentativas_quiz')} ft
+        JOIN {g('dim_tempo')} t ON t.data_key = ft.data_key
+        LEFT JOIN {g('dim_usuario')} u ON u.usuario_key = ft.usuario_key
+        WHERE ft.concluido_em IS NOT NULL AND ft.nota IS NOT NULL
+          AND t.data BETWEEN DATE'{INI}' AND DATE'{FIM}'
+        GROUP BY t.data, u.tipo_usuario, ft.condominio_key, CAST(ft.nota AS DOUBLE)
+        ORDER BY t.data, u.tipo_usuario, ft.condominio_key, CAST(ft.nota AS DOUBLE)
+    """)
+]
+
+# Estatística ponderada sem reconstruir arrays de observações no driver.
+def _valor_ordem(freqs, pos):
+    acumulado = 0
+    for valor, freq in freqs:
+        acumulado += freq
+        if pos < acumulado:
+            return valor
+    return freqs[-1][0] if freqs else None
+
+def _quantil_tipo7(freqs, p):
+    n = sum(freq for _, freq in freqs)
+    if not n:
+        return None
+    pos = (n - 1) * p
+    lo, hi = math.floor(pos), math.ceil(pos)
+    a, b = _valor_ordem(freqs, lo), _valor_ordem(freqs, hi)
+    return float(a + (pos - lo) * (b - a))
+
+def _estatisticas(freqs, unidade, aviso_amostra=False, box_minimo=1):
+    freqs = sorted([(float(v), int(n)) for v, n in freqs if v is not None and int(n) > 0], key=lambda x: x[0])
+    n = sum(f for _, f in freqs)
+    if not n:
+        return {"n": 0, "unidade": unidade, "media": None, "mediana": None,
+                "desvio_padrao_amostral": None, "histograma": [], "boxplot": None,
+                "aviso": "Sem observações disponíveis para o recorte."}
+    vals = [v for v, _ in freqs]
+    minimo, maximo = vals[0], vals[-1]
+    media = sum(v * f for v, f in freqs) / n
+    dp = math.sqrt(sum(f * ((v - media) ** 2) for v, f in freqs) / (n - 1)) if n > 1 else None
+    q1, mediana, q3 = (_quantil_tipo7(freqs, p) for p in (.25, .5, .75))
+    iqr = q3 - q1
+    lim_inf, lim_sup = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    dentro = [v for v in vals if lim_inf <= v <= lim_sup]
+    out_inf = sum(f for v, f in freqs if v < lim_inf)
+    out_sup = sum(f for v, f in freqs if v > lim_sup)
+    amplitude = maximo - minimo
+    largura_fd = 2 * iqr / (n ** (1 / 3)) if iqr > 0 and n > 1 else 0
+    if amplitude <= 0:
+        bins = 1
+    elif largura_fd > 0:
+        bins = max(1, min(30, math.ceil(amplitude / largura_fd)))
+    else:
+        bins = max(1, min(30, math.ceil(math.log2(n) + 1)))
+    largura = amplitude / bins if bins > 1 else 0
+    contagens = [0] * bins
+    for v, f in freqs:
+        idx = min(bins - 1, int((v - minimo) / largura)) if largura > 0 else 0
+        contagens[idx] += f
+    histograma = []
+    for i, f in enumerate(contagens):
+        ini_bin = minimo + i * largura if bins > 1 else minimo
+        fim_bin = maximo if bins == 1 or i == bins - 1 else minimo + (i + 1) * largura
+        histograma.append({"inicio": round(ini_bin, 4), "fim": round(fim_bin, 4),
+                           "frequencia": int(f), "faixa": f"{ini_bin:.2f}–{fim_bin:.2f}"})
+    box = None
+    if n >= box_minimo:
+        box = {
+            "metodo_quartis": "tipo 7 (interpolação linear)",
+            "metodo_whiskers": "Tukey: 1,5 × IQR; whiskers nos extremos observados dentro dos limites",
+            "minimo_absoluto": minimo, "q1": q1, "mediana": mediana, "q3": q3,
+            "maximo_absoluto": maximo, "iqr": iqr,
+            "whisker_inferior": min(dentro) if dentro else minimo,
+            "whisker_superior": max(dentro) if dentro else maximo,
+            "outliers_inferiores": int(out_inf), "outliers_superiores": int(out_sup),
+            "outliers_total": int(out_inf + out_sup)
+        }
+    aviso = "Amostra pequena (N < 30); interprete a dispersão com cautela." if aviso_amostra and n < 30 else None
+    if n < box_minimo:
+        aviso = f"Boxplot não exibido: são necessárias pelo menos {box_minimo} observações; N={n}."
+    return {"n": int(n), "unidade": unidade, "media": media, "mediana": mediana,
+            "desvio_padrao_amostral": dp, "minimo": minimo, "maximo": maximo,
+            "histograma": histograma, "boxplot": box, "aviso": aviso}
+
+# Distribuição de postagens por usuário: universo com data de cadastro conhecida até o fim do período,
+# incluindo zero postagens. Usuários sem data ou cadastrados depois do fim são contados à parte.
+_postagens_usuario = q(f"""
+    WITH por_usuario AS (
+        SELECT COALESCE(u.tipo_usuario, 'Não informado') AS tipo_usuario,
+               u.usuario_key, COUNT(f.postagem_key) AS postagens
+        FROM {g('dim_usuario')} u
+        LEFT JOIN {g('fato_postagens')} f
+          ON f.usuario_key = u.usuario_key AND f.data_key IN {PERIODO_SQL}
+        WHERE u.registro_em IS NOT NULL AND CAST(u.registro_em AS DATE) <= DATE'{FIM}'
+        GROUP BY COALESCE(u.tipo_usuario, 'Não informado'), u.usuario_key
+    )
+    SELECT tipo_usuario, postagens, COUNT(*) AS frequencia
+    FROM por_usuario GROUP BY tipo_usuario, postagens ORDER BY tipo_usuario, postagens
+""")
+_freq_por_tipo = {}
+for r in _postagens_usuario:
+    _freq_por_tipo.setdefault(r["tipo_usuario"], []).append((to_int(r["postagens"]), to_int(r["frequencia"])))
+_freq_global = {}
+for _tipo, _freqs in _freq_por_tipo.items():
+    for _v, _f in _freqs:
+        _freq_global[_v] = _freq_global.get(_v, 0) + _f
+POSTAGENS_POR_USUARIO = _estatisticas(list(_freq_global.items()), "postagens por usuário", box_minimo=1)
+POSTAGENS_POR_USUARIO["usuarios_sem_postagem"] = int(_freq_global.get(0, 0))
+POSTAGENS_POR_USUARIO["total_usuarios"] = int(sum(_freq_global.values()))
+POSTAGENS_POR_USUARIO["criterio_universo"] = f"Usuários com registro_em conhecido e até {FIM}; inclui zero postagens no período."
+POSTAGENS_POR_USUARIO["usuarios_sem_data_cadastro"] = to_int(q1(f"SELECT COUNT(*) AS n FROM {g('dim_usuario')} WHERE registro_em IS NULL").get("n"))
+POSTAGENS_POR_USUARIO["usuarios_registrados_apos_periodo"] = to_int(q1(f"SELECT COUNT(*) AS n FROM {g('dim_usuario')} WHERE CAST(registro_em AS DATE) > DATE'{FIM}'").get("n"))
+POSTAGENS_POR_USUARIO["segmentos_tipo_usuario"] = {
+    tipo: _estatisticas(freqs, "postagens por usuário") for tipo, freqs in _freq_por_tipo.items()
+}
+
+_notas_freq = [
+    (float(r["nota"]), to_int(r["frequencia"]))
+    for r in q(f"""
+        SELECT CAST(nota AS DOUBLE) AS nota, COUNT(*) AS frequencia
+        FROM {g('fato_tentativas_quiz')}
+        WHERE concluido_em IS NOT NULL AND nota IS NOT NULL AND data_key IN {PERIODO_SQL}
+        GROUP BY CAST(nota AS DOUBLE) ORDER BY CAST(nota AS DOUBLE)
+    """)
+]
+NOTAS_QUIZ = _estatisticas(_notas_freq, "nota do quiz", aviso_amostra=True, box_minimo=5)
+NOTAS_QUIZ["tentativas_concluidas"] = KPIS["quiz_respondidos"]
+NOTAS_QUIZ["tentativas_com_nota"] = KPIS["tentativas_com_nota"]
+NOTAS_QUIZ["tentativas_sem_nota"] = KPIS["tentativas_sem_nota"]
+
+# Comparação com a janela anterior de igual duração; denominador zero permanece indefinido.
+_dias_periodo = (d_fim - d_ini).days + 1
+_prev_ini, _prev_fim = d_ini - timedelta(days=_dias_periodo), d_ini - timedelta(days=1)
+_prev = q1(f"""
+    SELECT COUNT(*) AS total,
+           COUNT(CASE WHEN lower(trim(s.status_postagem)) = 'aprovada' THEN 1 END) AS aprovadas,
+           COUNT(DISTINCT f.usuario_key) AS usuarios
+    FROM {g('fato_postagens')} f
+    JOIN {g('dim_status_postagem')} s ON s.status_postagem_key = f.status_postagem_key
+    JOIN {g('dim_tempo')} t ON t.data_key = f.data_key
+    WHERE t.data BETWEEN DATE'{_prev_ini.isoformat()}' AND DATE'{_prev_fim.isoformat()}'
+""")
+_prev_quiz = q1(f"""
+    SELECT COUNT(*) AS total, COUNT(CASE WHEN aprovado THEN 1 END) AS aprovados
+    FROM {g('fato_tentativas_quiz')} ft
+    JOIN {g('dim_tempo')} t ON t.data_key = ft.data_key
+    WHERE ft.concluido_em IS NOT NULL
+      AND t.data BETWEEN DATE'{_prev_ini.isoformat()}' AND DATE'{_prev_fim.isoformat()}'
+""")
+def _comparar(atual, anterior):
+    atual, anterior = float(atual or 0), float(anterior or 0)
+    delta = atual - anterior
+    return {"atual": atual, "periodo_anterior": anterior, "variacao_absoluta": delta,
+            "variacao_percentual": None if anterior == 0 else delta / anterior * 100,
+            "base_anterior_zero": anterior == 0}
+_taxa_post_atual = 100 * KPIS["postagens_aprovadas"] / KPIS["postagens_total"] if KPIS["postagens_total"] else None
+_taxa_post_ant = 100 * to_int(_prev.get("aprovadas")) / to_int(_prev.get("total")) if to_int(_prev.get("total")) else None
+_taxa_quiz_atual = 100 * KPIS["quiz_aprovados"] / KPIS["quiz_respondidos"] if KPIS["quiz_respondidos"] else None
+_taxa_quiz_ant = 100 * to_int(_prev_quiz.get("aprovados")) / to_int(_prev_quiz.get("total")) if to_int(_prev_quiz.get("total")) else None
+COMPARATIVOS = {
+    "periodo_anterior": {"data_inicio": _prev_ini.isoformat(), "data_fim": _prev_fim.isoformat()},
+    "postagens_total": _comparar(KPIS["postagens_total"], _prev.get("total")),
+    "usuarios_que_postaram": _comparar(KPIS["usuarios_que_postaram"], _prev.get("usuarios")),
+    "quiz_respondidos": _comparar(KPIS["quiz_respondidos"], _prev_quiz.get("total")),
+    "taxa_aprovacao_postagens": {"atual": _taxa_post_atual, "periodo_anterior": _taxa_post_ant,
+        "variacao_pontos_percentuais": None if _taxa_post_atual is None or _taxa_post_ant is None else _taxa_post_atual - _taxa_post_ant},
+    "taxa_aprovacao_quiz": {"atual": _taxa_quiz_atual, "periodo_anterior": _taxa_quiz_ant,
+        "variacao_pontos_percentuais": None if _taxa_quiz_atual is None or _taxa_quiz_ant is None else _taxa_quiz_atual - _taxa_quiz_ant}
+}
+
+# Reconcile all new series before the JSON can be written or published.
+if sum(x["n"] for x in FATOS_DIARIOS if x["tipo_evento"] == "postagem") != KPIS["postagens_total"]:
+    raise RuntimeError("fatos_diarios/postagem não reconcilia com kpis.postagens_total")
+if sum(x["n"] for x in FATOS_DIARIOS if x["tipo_evento"] == "quiz") != KPIS["quiz_respondidos"]:
+    raise RuntimeError("fatos_diarios/quiz não reconcilia com kpis.quiz_respondidos")
+if sum(f for _, f in _freq_global.items()) != POSTAGENS_POR_USUARIO["total_usuarios"]:
+    raise RuntimeError("Distribuição de postagens por usuário não reconcilia com o universo cadastrado")
+if sum(f for _, f in _notas_freq) != KPIS["tentativas_com_nota"]:
+    raise RuntimeError("Distribuição de notas não reconcilia com tentativas_com_nota")
+if sum(r["frequencia"] for r in NOTAS_QUIZ_DIARIAS) != KPIS["tentativas_com_nota"]:
+    raise RuntimeError("notas_quiz_diarias não reconcilia com tentativas_com_nota")
 
 # COMMAND ----------
 
@@ -338,6 +717,20 @@ DATA = {
     "postagens_por_dia": POSTAGENS_DIA,
     "quiz_por_dia": QUIZ_DIA,
     "respostas_por_curso": CURSOS,
+    "distribuicoes": {
+        "postagens_por_usuario": POSTAGENS_POR_USUARIO,
+        "notas_quiz": NOTAS_QUIZ,
+    },
+    "comparativos": COMPARATIVOS,
+    "fatos_diarios": FATOS_DIARIOS,
+    "participacao_anonima": PARTICIPACAO_ANONIMA,
+    "universo_usuarios_anonimo": UNIVERSO_USUARIOS_ANONIMO,
+    "universo_usuarios_por_tipo": UNIVERSO_USUARIOS_POR_TIPO,
+    "usuarios_cadastrados_por_dia_tipo": USUARIOS_CADASTRADOS_POR_DIA_TIPO,
+    "universo_condominios": UNIVERSO_CONDOMINIOS,
+    "universo_categorias": UNIVERSO_CATEGORIAS,
+    "universo_status_postagem": UNIVERSO_STATUS_POSTAGEM,
+    "notas_quiz_diarias": NOTAS_QUIZ_DIARIAS,
 }
 
 # validações mínimas: melhor falhar do que publicar painel vazio
@@ -356,6 +749,8 @@ if KPIS["quiz_aprovados"] + KPIS["quiz_reprovados"] != KPIS["quiz_respondidos"]:
     erros.append("aprovados + reprovados difere de quiz_respondidos")
 if KPIS["condominios_ativos"] + KPIS["condominios_inativos"] != KPIS["condominios"]:
     erros.append("condomínios ativos + inativos difere do total")
+if KPIS["tentativas_com_nota"] + KPIS["tentativas_sem_nota"] != KPIS["quiz_respondidos"]:
+    erros.append("tentativas com nota + sem nota difere do total concluído")
 if erros:
     raise RuntimeError("data.json NÃO gravado: " + "; ".join(erros))
 

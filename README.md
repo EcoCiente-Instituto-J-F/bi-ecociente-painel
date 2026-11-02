@@ -31,6 +31,8 @@ Entre as informações apresentadas estão:
 - Volume de postagens e situação das validações.
 - Rankings de condomínios e usuários por postagens.
 - Tentativas, aprovações, notas e respostas dos quizzes.
+- Filtros por período, tipo de usuário, condomínio, status da postagem e categoria de resíduo, com variação em relação ao período anterior e desvio padrão.
+- Histogramas e boxplots de postagens por usuário e de notas dos quizzes (seção **Filtros, variações e distribuições**, no fim do modo Visualização).
 
 ### De onde vêm os dados
 
@@ -42,7 +44,7 @@ O `index.html` traz uma cópia dos dados embutida em `<script type="application/
 
 ### Formato do `data.json`
 
-O contrato mantém **nove blocos**, **sete campos em `meta`** e **15 KPIs**:
+O contrato original tem **nove blocos**, **sete campos em `meta`** e **15 KPIs**, preservados. O exportador acrescenta **quatro KPIs** (`tentativas_com_nota`, `tentativas_sem_nota`, `nota_desvio_padrao_amostral`, `nota_mediana`) e os blocos para filtros e estatística listados mais abaixo. Blocos originais:
 
 - `meta`: `gerado_em`, `data_inicio`, `data_fim`, `periodo`, `atualizado`, `fonte` e `lakeview_url`.
 - `kpis`: totais de usuários, cooperativas, condomínios, postagens, quizzes e nota média.
@@ -53,6 +55,17 @@ O contrato mantém **nove blocos**, **sete campos em `meta`** e **15 KPIs**:
 - `postagens_por_dia`: valores para cada dia, com rótulos de início e fim do período.
 - `quiz_por_dia`: rótulos e valores de quizzes **aprovados** por dia.
 - `respostas_por_curso`: lista de `{ curso, total, corretas }`.
+
+Blocos adicionais, usados pelos filtros, pelas variações e pelos gráficos de distribuição:
+
+- `distribuicoes`: `postagens_por_usuario` e `notas_quiz`, cada um com `n`, média, mediana, desvio padrão amostral, `histograma` e `boxplot` (quartis tipo 7, whiskers de Tukey a 1,5 × IQR) calculados sobre o período completo.
+- `comparativos`: período atual contra a janela anterior de mesma duração (variação absoluta, percentual e em pontos percentuais; `variacao_percentual` é nula quando a base anterior é zero).
+- `fatos_diarios`: contagens por dia, tipo de evento (`postagem` ou `quiz`), tipo de usuário, condomínio, status e categoria. Base dos filtros.
+- `participacao_anonima`: contagens por dia e usuário, com código anônimo (hash com sal aleatório gerado a cada exportação; o sal e os IDs não são exportados). Permite recalcular a distribuição de postagens por usuário após filtrar.
+- `notas_quiz_diarias`: frequência de cada nota por dia, tipo de usuário e condomínio.
+- `usuarios_cadastrados_por_dia_tipo`, `universo_usuarios_por_tipo`, `universo_condominios`, `universo_categorias` e `universo_status_postagem`: universos usados nos controles de filtro e para contar usuários sem postagem.
+
+Se o `data.json` não trouxer esses blocos (por exemplo, antes da primeira execução do Job com o exportador atualizado), a seção de filtros e distribuições avisa o que está indisponível, em vez de inventar valores. Como a cópia embutida no `index.html` não os contém, essa seção também depende de a página ser servida por HTTP(S).
 
 Sem `data_inicio` e `data_fim` nos parâmetros do exportador, a janela é obtida pela primeira e última data de postagem na Gold. Os parâmetros também aceitam um intervalo explícito em `AAAA-MM-DD`.
 
